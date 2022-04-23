@@ -37,6 +37,11 @@ def get_project_root_dir() -> os.path:
     return root_dir
 
 
+def get_global_root_data_dir(root_data_dir: os.path = os.path.join(os.path.expanduser("~"), "projects", "data")) -> os.path:
+    os.makedirs(root_data_dir, exist_ok=True)
+    return root_data_dir
+
+
 def read_json(file_path: os.path) -> Dict:
     with open(file_path, "r") as json_file:
         json_data = json.loads(json_file.read())
