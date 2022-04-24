@@ -164,10 +164,18 @@ class SocrataMetadata:
         prehash_str = self.table_id + source_domain + table_description + col_str
         detail_hash_str = sha256(prehash_str.encode(encoding="utf-8")).hexdigest()
         self.table_metadata["table_details_hash"] = detail_hash_str
+        self.table_metadata_hash = detail_hash_str
 
     def save_metadata(self) -> None:
         with open(self.metadata_file_path, "w", encoding="utf-8") as mfile:
             json.dump(self.table_metadata, mfile, ensure_ascii=False, indent=4, default=str)
+
+    def load_latest_table_metadata(self) -> Dict:
+        if os.path.isfile(self.metadata_file_path):
+            with open(self.metadata_file_path) as mfile:
+                return json.load(mfile)
+        else:
+            return None
 
 
 class SocrataTable:
@@ -180,3 +188,10 @@ class SocrataTable:
         self.table_id = table_id
         self.verbose = verbose
         self.metadata = SocrataMetadata(table_id=table_id, root_data_dir=root_data_dir)
+
+    def new_table_data_available(self) -> bool:
+        metadata_cache = self.metadata.load_latest_table_metadata()
+        if metadata_cache is not None:
+            return metadata_cache["table_details_hash"] != self.metadata.table_metadata_hash
+        else:
+            return True
