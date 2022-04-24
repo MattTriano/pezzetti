@@ -1,4 +1,6 @@
 from datetime import datetime
+from hashlib import sha256
+import json
 import os
 import requests
 from typing import Dict, List, Union, Optional
@@ -32,6 +34,7 @@ class SocrataMetadata:
             results = {"_id": self.table_id, "time_of_collection": datetime.utcnow()}
             results.update(response_json["results"][0])
             self.table_metadata = results
+            self.set_hash_of_column_details()
 
     def get_table_metadata(self) -> Optional[Dict]:
         if self.table_metadata is None:
@@ -141,6 +144,30 @@ class SocrataMetadata:
 
     def set_data_raw_file_path(self) -> None:
         self.data_raw_file_path = os.path.join(self.table_data_raw_dir, self.data_file_name)
+
+    def set_hash_of_column_details(self) -> None:
+        source_domain = self.table_metadata["metadata"]["domain"]
+        table_details = self.table_metadata["resource"]
+        table_description = table_details["description"]
+        col_details = zip(
+            table_details["columns_name"],
+            table_details["columns_field_name"],
+            table_details["columns_datatype"],
+            table_details["columns_description"],
+        )
+        col_str = "".join(
+            [
+                name + field_name + datatype + descr
+                for name, field_name, datatype, descr in col_details
+            ]
+        )
+        prehash_str = self.table_id + source_domain + table_description + col_str
+        detail_hash_str = sha256(prehash_str.encode(encoding="utf-8")).hexdigest()
+        self.table_metadata["table_details_hash"] = detail_hash_str
+
+    def save_metadata(self) -> None:
+        with open(self.metadata_file_path, "w", encoding="utf-8") as mfile:
+            json.dump(self.table_metadata, mfile, ensure_ascii=False, indent=4, default=str)
 
 
 class SocrataTable:
