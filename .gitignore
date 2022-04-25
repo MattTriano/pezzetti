@@ -45,6 +45,7 @@ shapefiles/
 *.ipynb_checkpoints/
 *.parquet.gzip
 *.csv
+notebooks/
 
 *.PNG
 *.pkl
