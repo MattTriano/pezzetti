@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Dict, List, Optional
+from urllib.request import urlretrieve
 
 import pandas as pd
 from pandas.api.types import (
@@ -37,7 +38,9 @@ def get_project_root_dir() -> os.path:
     return root_dir
 
 
-def get_global_root_data_dir(root_data_dir: os.path = os.path.join(os.path.expanduser("~"), "projects", "data")) -> os.path:
+def get_global_root_data_dir(
+    root_data_dir: os.path = os.path.join(os.path.expanduser("~"), "projects", "data")
+) -> os.path:
     os.makedirs(root_data_dir, exist_ok=True)
     return root_data_dir
 
@@ -94,6 +97,7 @@ def typeset_simple_category_columns(df: pd.DataFrame, category_columns: List[str
         df[category_column] = df[category_column].astype("category")
     return df
 
+
 def typeset_ordered_categorical_feature(df: pd.DataFrame, category_column: str) -> pd.DataFrame:
     categories = list(df[category_column].unique())
     categories.sort()
@@ -101,6 +105,7 @@ def typeset_ordered_categorical_feature(df: pd.DataFrame, category_column: str) 
         CategoricalDtype(categories=df[category_column], ordered=True)
     )
     return df
+
 
 def typeset_datetime_column(
     dt_series: pd.Series, dt_format: Optional[str], errors: str = "coerce"
