@@ -66,5 +66,5 @@ print(cook_county_property_sales.metadata.table_metadata)
 To read up-to-date table data to a pandas DataFrame or geopandas GeoDataFrame (depending on whether the table is geospatial or not), the `.read_raw_data()` method will download table metadata and see if up-to-date data is available locally. If the local data is not up to date, the local raw data and metadata will be copied to archive directories and fresh data will be downloaded and returned, otherwise the local data will be read in and returned.
 
 ```python
-print(cook_county_property_sales_df = cook_county_property_sales.read_raw_data())
+cook_county_property_sales_df = cook_county_property_sales.read_raw_data()
 ```
