@@ -1,6 +1,11 @@
 import datetime as dt
 import json
 import os
+import shutil
+from typing import Dict, List, Union, Optional
+
+from bs4 import BeautifulSoup
+import requests
 
 from pezzetti.utils import get_global_root_data_dir
 
@@ -24,6 +29,7 @@ class CensusMetadataNode:
     def set_node_data_dir(self) -> None:
         self.node_data_dir = os.path.join(self.root_data_dir, "us_census", self.node_data_relpath)
         os.makedirs(self.node_data_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.node_data_dir, "archive"), exist_ok=True)
 
     def _is_node_a_dir(self, url: str) -> bool:
         return (url.endswith("/")) or (url == self.root_node_url)
@@ -34,7 +40,7 @@ class CensusMetadataNode:
 
     def _extract_node_data_from_row(self, row_elements: List) -> Dict:
         child_name = row_elements[1].find("a").get("href")
-        child_url = "/".join([base_url, child_name])
+        child_url = "/".join([self.url, child_name])
         child_date_str = self._parse_last_mod_date_str(node_date_str=row_elements[2].text.strip())
         child_node_size = row_elements[3].text.strip()
         child_node_descr = row_elements[4].text.strip()
@@ -48,14 +54,11 @@ class CensusMetadataNode:
         }
 
     def scrape_child_node_metadata(self) -> None:
-        this_node = census_node
-        base_url = this_node.url
-
-        res = requests.get(base_url)
-        soup = BeautifulSoup(res.text)
+        res = requests.get(self.url)
+        soup = BeautifulSoup(res.text, features="lxml")
         html_table_rows = soup.find_all("tr")
 
-        if this_node.is_root_node:
+        if self.is_root_node:
             index_of_first_data_row = 2
         else:
             index_of_first_data_row = 3
@@ -105,4 +108,23 @@ class CensusMetadataNode:
             "last_modified": self.last_modified_date,
             "is_root_node": self.is_root_node,
             "child_nodes": self.child_nodes,
+            "child_dir_nodes": self.child_node_dir_count,
+            "child_file_nodes": self.child_node_file_count,
         }
+
+    def get_last_modified_date_of_latest_node_cache(self) -> str:
+        if os.path.isfile(self.node_metadata_file_path):
+            cached_node = self._read_latest_node_metadata_file()
+            cached_node_last_modified = cached_node["last_modified"]
+        else:
+            cached_node_last_modified = "0"
+        return cached_node_last_modified
+
+    def archive_node_metadata_cache(self) -> None:
+        cached_node_last_modified = self.get_last_modified_date_of_latest_node_cache()
+        archive_file_path = os.path.join(
+            os.path.dirname(self.node_metadata_file_path),
+            "archive",
+            f"node_metadata_{cached_node_last_modified}.json",
+        )
+        shutil.copy2(self.node_metadata_file_path, archive_file_path)
