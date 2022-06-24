@@ -14,10 +14,10 @@ class CensusMetadataNode:
         self.node_data_relpath = os.sep.join(self.url.strip(self.root_node_url).split("/"))
         self.child_nodes = {}
         self.is_root_node = self.url == self.root_node_url
-        self.isdir = self._is_node_a_dir()
         self.set_node_data_dir()
         self.node_metadata_file_path = os.path.join(self.node_data_dir, "node_metadata.json")
         self.scrape_child_node_metadata()
+        self._count_child_node_dirs_and_files()
         self.set_last_modified_date()
         self.set_node_metadata()
 
@@ -25,8 +25,8 @@ class CensusMetadataNode:
         self.node_data_dir = os.path.join(self.root_data_dir, "us_census", self.node_data_relpath)
         os.makedirs(self.node_data_dir, exist_ok=True)
 
-    def _is_node_a_dir(self) -> bool:
-        return (self.url.endswith("/")) or (self.url == self.root_node_url)
+    def _is_node_a_dir(self, url: str) -> bool:
+        return (url.endswith("/")) or (url == self.root_node_url)
 
     def _parse_last_mod_date_str(self, node_date_str: str) -> str:
         node_date = dt.datetime.strptime(node_date_str, "%d-%b-%Y %H:%M")
@@ -68,6 +68,15 @@ class CensusMetadataNode:
                 self.child_nodes[row_data["url"]] = row_data
             else:
                 pass
+
+    def _count_child_node_dirs_and_files(self) -> None:
+        self.child_node_dir_count = 0
+        self.child_node_file_count = 0
+        for child_node in self.child_nodes.values():
+            if self._is_node_a_dir(child_node["url"]):
+                self.child_node_dir_count = self.child_node_dir_count + 1
+            else:
+                self.child_node_file_count = self.child_node_file_count + 1
 
     def _get_date_of_most_recently_modified_child_node(self) -> str:
         latest_mod_date = "0"
