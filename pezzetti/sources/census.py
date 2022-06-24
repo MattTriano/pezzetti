@@ -72,6 +72,20 @@ class CensusMetadataNode:
             else:
                 pass
 
+    def get_child_dir_nodes(self) -> List:
+        child_dir_nodes = []
+        for child_node in self.child_nodes.values():
+            if self._is_node_a_dir(url=child_node["url"]):
+                child_dir_nodes.append(child_node)
+        return child_dir_nodes
+
+    def get_child_file_nodes(self) -> List:
+        child_file_nodes = []
+        for child_node in self.child_nodes.values():
+            if not self._is_node_a_dir(url=child_node["url"]):
+                child_file_nodes.append(child_node)
+        return child_file_nodes
+
     def _count_child_node_dirs_and_files(self) -> None:
         self.child_node_dir_count = 0
         self.child_node_file_count = 0
@@ -128,3 +142,21 @@ class CensusMetadataNode:
             f"node_metadata_{cached_node_last_modified}.json",
         )
         shutil.copy2(self.node_metadata_file_path, archive_file_path)
+
+    def get_updated_child_dir_nodes(self) -> List:
+        cached_node_last_modified = self.get_last_modified_date_of_latest_node_cache()
+        if self.last_modified_date > cached_node_last_modified:
+            cached_node = self._read_latest_node_metadata_file()
+            if cached_node is None:
+                updated_dir_nodes = self.get_child_dir_nodes()
+            else:
+                updated_dir_nodes = []
+                for child_dir_node_url, child_dir_node_data in self.get_child_dir_nodes().items():
+                    if (child_dir_node_url in cached_node) and (
+                        child_dir_node_data["last_modified"]
+                        <= cached_node[child_dir_node_url]["last_modified"]
+                    ):
+                        pass
+                    else:
+                        updated_dir_nodes.append({child_dir_node_url: child_dir_node_data})
+            return updated_dir_nodes
