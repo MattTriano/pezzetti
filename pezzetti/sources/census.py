@@ -1,6 +1,8 @@
+import datetime as dt
 import os
 
 from pezzetti.utils import get_global_root_data_dir
+
 
 class CensusMetadataNode:
     root_node_url = "https://www2.census.gov"
@@ -8,17 +10,58 @@ class CensusMetadataNode:
     def __init__(self, url: str, root_data_dir: os.path = get_global_root_data_dir()):
         self.url = url
         self.root_data_dir = root_data_dir
+        self.node_data_relpath = os.sep.join(self.url.strip(self.root_node_url).split("/"))
         self.child_nodes = {}
-        self.is_root_node = (self.url == root_node_url)
+        self.is_root_node = self.url == self.root_node_url
         self.isdir = self._is_node_a_dir()
-        self.set_local_dataset_dir()
+        self.set_node_data_dir()
+        self.node_metadata_file_path = os.path.join(self.node_data_dir, "node_metadata.json")
+        self.scrape_node_metadata()
 
-    def set_local_dataset_dir(self) -> None:
-        self.local_dataset_dir = os.path.join(
-            self.root_data_dir, "us_census",  
-            os.sep.join(self.url.strip(root_node_url).split("/"))
-        )
-        os.makedirs(self.local_dataset_dir, exist_ok=True)
+    def set_node_data_dir(self) -> None:
+        self.node_data_dir = os.path.join(self.root_data_dir, "us_census", self.node_data_relpath)
+        os.makedirs(self.node_data_dir, exist_ok=True)
 
     def _is_node_a_dir(self) -> bool:
-        return self.url.endswith("/")
+        return (self.url.endswith("/")) or (self.url == self.root_node_url)
+
+    def _parse_last_mod_date_str(self, node_date_str: str) -> str:
+        node_date = dt.datetime.strptime(node_date_str, "%d-%b-%Y %H:%M")
+        return node_date.strftime("%Y_%m_%d__%H%M")
+
+    def _extract_node_data_from_row(self, row_elements: List) -> Dict:
+        child_name = row_elements[1].find("a").get("href")
+        child_url = "/".join([base_url, child_name])
+        child_date_str = self._parse_last_mod_date_str(node_date_str=row_elements[2].text.strip())
+        child_node_size = row_elements[3].text.strip()
+        child_node_descr = row_elements[4].text.strip()
+        return {
+            "url": child_url,
+            "name": child_name,
+            "last_modified": child_date_str,
+            "size": child_node_size,
+            "description": child_node_descr,
+            "is_file": (child_node_size != "-"),
+        }
+
+    def scrape_node_metadata(self) -> None:
+        this_node = census_node
+        base_url = this_node.url
+
+        res = requests.get(base_url)
+        soup = BeautifulSoup(res.text)
+        html_table_rows = soup.find_all("tr")
+
+        if this_node.is_root_node:
+            index_of_first_data_row = 2
+        else:
+            index_of_first_data_row = 3
+        index_of_last_data_row = len(html_table_rows) - 2
+
+        for row_index in range(index_of_first_data_row, index_of_last_data_row + 1):
+            html_table_row_elements = html_table_rows[row_index].find_all("td")
+            if len(html_table_row_elements) == 5:
+                row_data = self._extract_node_data_from_row(row_elements=html_table_row_elements)
+                self.child_nodes[row_data["url"]] = row_data
+            else:
+                pass
