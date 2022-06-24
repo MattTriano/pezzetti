@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 import os
 
 from pezzetti.utils import get_global_root_data_dir
@@ -16,7 +17,9 @@ class CensusMetadataNode:
         self.isdir = self._is_node_a_dir()
         self.set_node_data_dir()
         self.node_metadata_file_path = os.path.join(self.node_data_dir, "node_metadata.json")
-        self.scrape_node_metadata()
+        self.scrape_child_node_metadata()
+        self.set_last_modified_date()
+        self.set_node_metadata()
 
     def set_node_data_dir(self) -> None:
         self.node_data_dir = os.path.join(self.root_data_dir, "us_census", self.node_data_relpath)
@@ -44,7 +47,7 @@ class CensusMetadataNode:
             "is_file": (child_node_size != "-"),
         }
 
-    def scrape_node_metadata(self) -> None:
+    def scrape_child_node_metadata(self) -> None:
         this_node = census_node
         base_url = this_node.url
 
@@ -65,3 +68,32 @@ class CensusMetadataNode:
                 self.child_nodes[row_data["url"]] = row_data
             else:
                 pass
+
+    def _get_date_of_most_recently_modified_child_node(self) -> str:
+        latest_mod_date = "0"
+        for child_node in self.child_nodes.values():
+            if child_node["last_modified"] > latest_mod_date:
+                latest_mod_date = child_node["last_modified"]
+        return latest_mod_date
+
+    def set_last_modified_date(self) -> None:
+        self.last_modified_date = self._get_date_of_most_recently_modified_child_node()
+
+    def _read_latest_node_metadata_file(self) -> Dict:
+        if os.path.isfile(self.node_metadata_file_path):
+            with open(self.node_metadata_file_path) as mfile:
+                return json.load(mfile)
+        else:
+            return None
+
+    def _save_node_metadata(self) -> None:
+        with open(self.node_metadata_file_path, "w", encoding="utf-8") as mfile:
+            json.dump(self.node_metadata, mfile, ensure_ascii=False, indent=4, default=str)
+
+    def set_node_metadata(self) -> None:
+        self.node_metadata = {
+            "url": self.url,
+            "last_modified": self.last_modified_date,
+            "is_root_node": self.is_root_node,
+            "child_nodes": self.child_nodes,
+        }
