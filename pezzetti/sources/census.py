@@ -1,3 +1,4 @@
+from collections import deque
 import datetime as dt
 import json
 import os
@@ -160,3 +161,29 @@ class CensusMetadataNode:
                     else:
                         updated_dir_nodes.append({child_dir_node_url: child_dir_node_data})
             return updated_dir_nodes
+
+    def update_node_metadata_cache(self) -> None:
+        if os.path.isfile(self.node_metadata_file_path):
+            self.archive_node_metadata_cache()
+        self._save_node_metadata()
+
+
+class CensusNodeQueue:
+    def __init__(self) -> None:
+        self.nodes_to_check = deque()
+
+    @property
+    def empty(self) -> bool:
+        return not self.nodes_to_check
+
+    def push(self, node_item) -> None:
+        if isinstance(node_item, dict):
+            self.nodes_to_check.append(node_item)
+        elif isinstance(node_item, list):
+            self.nodes_to_check.extend(node_item)
+
+    def pop(self) -> Dict:
+        return self.nodes_to_check.popleft()  # FIFO
+
+    def __repr__(self) -> str:
+        return repr(self.nodes_to_check)
