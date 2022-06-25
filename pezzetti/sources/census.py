@@ -17,7 +17,9 @@ class CensusMetadataNode:
     def __init__(self, url: str, root_data_dir: os.path = get_global_root_data_dir()):
         self.url = url
         self.root_data_dir = root_data_dir
-        self.node_data_relpath = os.sep.join(self.url.strip(self.root_node_url).split("/"))
+        self.node_data_relpath = os.sep.join(
+            self.url.replace(self.root_node_url, "").split("/")[1:]
+        )
         self.child_nodes = {}
         self.is_root_node = self.url == self.root_node_url
         self.set_node_data_dir()
@@ -163,9 +165,11 @@ class CensusMetadataNode:
             return updated_dir_nodes
 
     def update_node_metadata_cache(self) -> None:
-        if os.path.isfile(self.node_metadata_file_path):
-            self.archive_node_metadata_cache()
-        self._save_node_metadata()
+        updated_child_dir_nodes = self.get_updated_child_dir_nodes()
+        if updated_child_dir_nodes is not None and len(updated_child_dir_nodes) > 0:
+            if os.path.isfile(self.node_metadata_file_path):
+                self.archive_node_metadata_cache()
+            self._save_node_metadata()
 
 
 class CensusNodeQueue:
