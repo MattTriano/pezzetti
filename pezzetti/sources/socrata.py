@@ -226,9 +226,7 @@ class SocrataTable:
             return True
 
     def _archive_latest_saved_raw_data(self) -> None:
-        last_updated = self.metadata.get_latest_update_date(
-            metadata_dict=self.metadata.read_latest_table_metadata()
-        )
+        last_updated = self.metadata.get_latest_update_date()
         last_updated_str = last_updated.strftime("%Y%m%d__%H%M%S")
         archive_file_path = os.path.join(
             os.path.dirname(self.metadata.table_data_raw_dir),
