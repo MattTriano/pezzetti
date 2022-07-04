@@ -6,4 +6,5 @@ setup(
 	name="pezzetti",
 	version="0.1.0",
 	packages=find_packages(include=["pezzetti", "pezzetti.*"]),
+    install_requires=["geopandas>=0.9"],
 )
