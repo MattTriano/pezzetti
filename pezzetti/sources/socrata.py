@@ -17,7 +17,7 @@ class SocrataMetadata:
     def __init__(self, table_id: str, root_data_dir: os.path = get_global_root_data_dir()) -> None:
         self.table_id = table_id
         self.root_data_dir = root_data_dir
-        self.set_table_metadata()
+        self.table_metadata = self.get_table_metadata()
         self.set_data_domain()
         self.set_table_name()
         self.set_table_data_dir()
@@ -42,10 +42,7 @@ class SocrataMetadata:
     def get_table_metadata(self) -> Optional[Dict]:
         if self.table_metadata is None:
             self.set_table_metadata()
-        if self.table_metadata is not None:
-            return self.table_metadata
-        else:
-            print("Couldn't retrieve table_metadata. Debug this issue.")
+        return self.table_metadata
 
     def set_data_domain(self) -> str:
         self.data_domain = self.table_metadata["metadata"]["domain"]
