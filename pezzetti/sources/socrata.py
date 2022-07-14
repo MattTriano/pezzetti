@@ -211,8 +211,12 @@ class SocrataTable:
     ) -> None:
         self.table_id = table_id
         self.verbose = verbose
-        self.metadata = SocrataMetadata(table_id=table_id, root_data_dir=root_data_dir)
+        self.root_data_dir = root_data_dir
         self.enforce_metadata_parity = enforce_metadata_parity
+        self.metadata = self.get_metadata()
+
+    def get_metadata(self) -> None:
+        return SocrataMetadata(table_id=self.table_id, root_data_dir=self.root_data_dir)
 
     def new_table_data_available(self) -> bool:
         if os.path.isfile(self.metadata.metadata_file_path):
@@ -245,14 +249,17 @@ class SocrataTable:
 
     def _update_raw_table_data(self) -> None:
         self.metadata.archive_latest_saved_metadata()
-        self.metadata.save_metadata()
+        # self.metadata.save_metadata()
         self._archive_latest_saved_raw_data()
         self._download_raw_table_data()
 
     def _refresh_raw_data(self) -> None:
         prior_raw_data_file_exists = os.path.isfile(self.metadata.data_raw_file_path)
+        prior_raw_data_file_does_not_exist = not prior_raw_data_file_exists
         prior_metadata_file_exists = os.path.isfile(self.metadata.metadata_file_path)
-        if (not prior_raw_data_file_exists) and (not prior_metadata_file_exists):
+        prior_metadata_file_does_not_exist = not prior_metadata_file_exists
+
+        if prior_raw_data_file_does_not_exist and prior_metadata_file_does_not_exist:
             self._download_raw_table_data()
         elif prior_raw_data_file_exists and prior_metadata_file_exists:
             if self.new_table_data_available():
